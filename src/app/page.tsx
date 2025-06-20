@@ -1,0 +1,14 @@
+"use client";
+import { toast } from "@/components/custom/toast";
+import { Button } from "@/components/ui/button";
+
+export default function Home() {
+  const handleClick = () => {
+    toast.success("Hello World!");
+  };
+  return (
+    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+      <Button onClick={handleClick}>test toast</Button>
+    </div>
+  );
+}

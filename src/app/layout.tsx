@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { auth } from "@/lib/auth"
 import { NextSessionProvider } from "@/providers/auth-provider";
+import { FloatingNavbar } from "@/components/custom/NavBar";
+import { MainWidthWrapper } from "@/components/custom/MainWidthWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,9 +32,11 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         <NextSessionProvider session={session}>
-          <main>{children}</main>
+          <MainWidthWrapper>{children}</MainWidthWrapper>
+          <FloatingNavbar />
           <Toaster />
         </NextSessionProvider>
       </body>

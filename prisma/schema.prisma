@@ -20,8 +20,12 @@ model User {
   // Optional for WebAuthn support
   Authenticator Authenticator[]
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  BodyMetric      BodyMetric[]
+  WorkoutTemplate WorkoutTemplate[]
+  WorkoutSession  WorkoutSession[]
+  PersonalRecord  PersonalRecord[]
 }
 
 model Account {
@@ -79,6 +83,173 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+}
+
+// Master exercise database
+model Exercise {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  category     String // "chest", "back", "legs", "shoulders", "arms", "core", "cardio"
+  muscleGroup  Json // ["chest", "triceps"] for compound movements
+  equipment    String? // "barbell", "dumbbell", "machine", "bodyweight"
+  instructions String?
+  imageUrl     String?
+  isCustom     Boolean  @default(false) // User-created vs system exercises
+  createdBy    String? // User ID if custom exercise
+  createdAt    DateTime @default(now())
+
+  // Relations
+  templateExercises TemplateExercise[]
+  sessionExercises  SessionExercise[]
+  personalRecords   PersonalRecord[]
+
+  @@map("exercises")
+}
+
+// Workout templates (reusable workout plans)
+model WorkoutTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String? // "push", "pull", "legs", "upper", "lower", "full-body"
+  userId      String
+  isPublic    Boolean  @default(false) // Can other users see/copy this template
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises TemplateExercise[]
+  sessions  WorkoutSession[]
+
+  @@map("workout_templates")
+}
+
+// Exercises within a workout template
+model TemplateExercise {
+  id         String @id @default(cuid())
+  templateId String
+  exerciseId String
+  order      Int // Order of exercise in the workout
+
+  // Planned sets/reps (targets)
+  targetSets     Int?
+  targetReps     Int?
+  targetWeight   Float?
+  targetDuration Int? // For time-based exercises (seconds)
+  targetDistance Float? // For cardio (meters/km)
+
+  restTime Int? // Rest time between sets (seconds)
+  notes    String?
+
+  // Relations
+  template WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  exercise Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, exerciseId, order])
+  @@map("template_exercises")
+}
+
+// Actual workout sessions
+model WorkoutSession {
+  id         String    @id @default(cuid())
+  userId     String
+  templateId String? // Optional - might be a freestyle workout
+  name       String
+  startTime  DateTime
+  endTime    DateTime?
+  notes      String?
+  rating     Int? // 1-5 rating of how the workout felt
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template  WorkoutTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  exercises SessionExercise[]
+
+  @@map("workout_sessions")
+}
+
+// Exercises performed in a workout session
+model SessionExercise {
+  id         String  @id @default(cuid())
+  sessionId  String
+  exerciseId String
+  order      Int // Order performed in the session
+  notes      String?
+
+  // Relations
+  session  WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  sets     ExerciseSet[]
+
+  @@unique([sessionId, exerciseId, order])
+  @@map("session_exercises")
+}
+
+// Individual sets within an exercise
+model ExerciseSet {
+  id                String @id @default(cuid())
+  sessionExerciseId String
+  setNumber         Int // 1, 2, 3, etc.
+
+  // Different types of sets
+  setType String @default("normal") // "normal", "warmup", "dropset", "failure", "rest-pause"
+
+  // Set data
+  reps        Int?
+  weight      Float?
+  duration    Int? // For time-based exercises (seconds)
+  distance    Float? // For cardio
+  restTime    Int? // Actual rest taken (seconds)
+  rpe         Int? // Rate of Perceived Exertion (1-10)
+  isCompleted Boolean @default(true)
+  notes       String?
+
+  // Relations
+  sessionExercise SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
+
+  @@map("exercise_sets")
+}
+
+// Personal Records tracking
+model PersonalRecord {
+  id         String   @id @default(cuid())
+  userId     String
+  exerciseId String
+  recordType String // "1rm", "5rm", "max_reps", "max_weight", "max_volume", "max_distance"
+  value      Float // The record value
+  reps       Int? // Reps achieved for this record
+  weight     Float? // Weight used for this record
+  date       DateTime
+  sessionId  String? // Optional link to the session where this was achieved
+  notes      String?
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId, recordType]) // One record per type per exercise per user
+  @@map("personal_records")
+}
+
+// Body metrics for tracking progress
+model BodyMetric {
+  id           String   @id @default(cuid())
+  userId       String
+  date         DateTime
+  weight       Float?
+  bodyFat      Float? // Percentage
+  muscle       Float? // Percentage or weight
+  measurements Json? // Flexible JSON for chest, arms, waist, etc.
+  photos       Json? // Array of photo URLs
+  notes        String?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("body_metrics")
 }
 
 enum Role {

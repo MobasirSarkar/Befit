@@ -87,17 +87,17 @@ model Authenticator {
 
 // Master exercise database
 model Exercise {
-  id           String   @id @default(cuid())
+  id           String           @id @default(cuid())
   name         String
   description  String?
-  category     String // "chest", "back", "legs", "shoulders", "arms", "core", "cardio"
+  category     ExerciseCategory // "chest", "back", "legs", "shoulders", "arms", "core", "cardio"
   muscleGroup  Json // ["chest", "triceps"] for compound movements
   equipment    String? // "barbell", "dumbbell", "machine", "bodyweight"
   instructions String?
   imageUrl     String?
-  isCustom     Boolean  @default(false) // User-created vs system exercises
+  isCustom     Boolean          @default(false) // User-created vs system exercises
   createdBy    String? // User ID if custom exercise
-  createdAt    DateTime @default(now())
+  createdAt    DateTime         @default(now())
 
   // Relations
   templateExercises TemplateExercise[]
@@ -109,14 +109,14 @@ model Exercise {
 
 // Workout templates (reusable workout plans)
 model WorkoutTemplate {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   name        String
   description String?
-  category    String? // "push", "pull", "legs", "upper", "lower", "full-body"
+  category    ExerciseCategory? // "push", "pull", "legs", "upper", "lower", "full-body"
   userId      String
-  isPublic    Boolean  @default(false) // Can other users see/copy this template
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isPublic    Boolean           @default(false) // Can other users see/copy this template
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   // Relations
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -130,6 +130,7 @@ model WorkoutTemplate {
 model TemplateExercise {
   id         String @id @default(cuid())
   templateId String
+
   exerciseId String
   order      Int // Order of exercise in the workout
 
@@ -256,4 +257,44 @@ enum Role {
   USER
   ADMIN
   MODERATOR
+}
+
+enum ExerciseCategory {
+  CHEST
+  UPPER_CHEST
+  MIDDLE_CHEST
+  LOWER_CHEST
+  BACK
+  LATS
+  TRAPS
+  LOWER_BACK
+  SHOULDERS
+  FRONT_DELTS
+  SIDE_DELTS
+  REAR_DELTS
+  BICEPS
+  TRICEPS
+  FOREARMS
+  NECK
+
+  LEGS
+  QUADS
+  HAMSTRINGS
+  CALVES
+  GLUTES
+  ADDUCTORS
+  ABDUCTORS
+
+  CORE
+  UPPER_ABS
+  LOWER_ABS
+  OBLIQUES
+  TRANSVERSE_ABS
+  PELVIC_FLOOR
+
+  FULL_BODY
+  CARDIO
+  MOBILITY
+  STRETCHING
+  POSTURE
 }
